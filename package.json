@@ -1,0 +1,19 @@
+{
+  "name": "ts-loader-forcesupertransfomer",
+  "version": "1.0.0",
+  "description": "verifies all overrides of a method with a @forceSuperCall JSDoc tag call super",
+  "main": "webpack.ts-loader.forcesupertransformer.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "John Brandle",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/johnbrandle/ts-loader-forcesupertransformer.git"
+  },
+  "browserslist": "last 2 versions",
+  "devDependencies": {
+    "typescript": "^5.0.4"
+  }
+}
