@@ -1,6 +1,6 @@
 {
-  "name": "ts-loader-forcesupertransfomer",
-  "version": "1.0.1",
+  "name": "ts-loader-forcesupertransformer",
+  "version": "1.0.2",
   "description": "verifies all overrides of a method with a @forceSuperCall JSDoc tag call super",
   "main": "index.js",
   "scripts": {
