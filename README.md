@@ -1,6 +1,6 @@
 # ts-loader-forcesupertransformer: typescript 'super' enforcer
 
-Add a @forceSuper tag in a method's JSDoc, and all overrides must call super or an error will be thrown during compilation.  
+Add a @forceSuperCall tag in a method's JSDoc, and all overrides must call super or an error will be thrown during compilation.  
 
 ## Installation
 
