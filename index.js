@@ -31,6 +31,8 @@ class ForceSuperTransformer
 {
     _program;
     _attributeName;
+    _debug;
+
     _typeChecker;
 
     _context;
@@ -40,10 +42,11 @@ class ForceSuperTransformer
     _pendingClassNodes = new Map();
     _failed = false;
     
-    constructor(program, attributeName) 
+    constructor(program, attributeName, debug) 
     {
         this._program = program;
         this._attributeName = attributeName;
+        this._debug = debug;
 
         this._typeChecker = this._program.getTypeChecker();
     }
@@ -52,10 +55,13 @@ class ForceSuperTransformer
     {
         if (!this._failed && this._pendingClassNodes.size) 
         {
+            console.warn('classNodes:');
             console.warn(this._classNodes.keys());
+
+            console.warn('pendingClassNodes:');
             console.warn(this._pendingClassNodes.keys());
 
-            throw new Error(`${this._pendingClassNodes.size} items left in pending queue`);
+            console.error(`${this._pendingClassNodes.size} items left in pending queue`);
         }
 
         this._context = null;
@@ -122,7 +128,7 @@ class ForceSuperTransformer
             if (symbol.declarations[0].parent?.moduleSpecifier)
             {
                 let basepath = path.dirname(symbol.declarations[0].getSourceFile().fileName);
-                let relativeFilePathOfExtends = symbol.declarations[0].parent.moduleSpecifier.text + '.ts'; 
+                let relativeFilePathOfExtends = symbol.declarations[0].parent.moduleSpecifier.text.replace('.ts', '') + '.ts'; 
     
                 let extendsFilePath = path.join(basepath, relativeFilePathOfExtends);
                 let parentName = this._typeChecker.getFullyQualifiedName(symbol);
@@ -141,15 +147,20 @@ class ForceSuperTransformer
 
     #getParentClassNode(classNode)
     {
-        return this._classNodes.get(this.#getParentClassFullyQualifiedName(classNode) || '');
+        let fullyQualifiedName = this.#getParentClassFullyQualifiedName(classNode);
+        if (!fullyQualifiedName) return null;
+
+        let result = this._classNodes.get(fullyQualifiedName);
+        if (!result && this._debug) console.log(fullyQualifiedName); //it's normal for result to be null, but if there are items pending, then there is probably something wrong with the fullyQualifiedName, and the issue is likely to be found towards the end of these logs
+
+        return result;
     }
 
     #processPending()
     {
         const isReadyForProcessing = (classNode) => 
         {
-            let hasParent;
-            while (hasParent = this.#hasParent(classNode))
+            while (this.#hasParent(classNode))
             {
                 classNode = this.#getParentClassNode(classNode);
                 if (!classNode) return false;
@@ -248,7 +259,7 @@ class ForceSuperTransformer
 let transformers = new Map();
 let ID = 0;
 
-module.exports = (program, attributeName='forceSuperCall') => 
+module.exports = (program, attributeName='forceSuperCall', debug=false) => 
 {
     if (!program) //renew all transfomers
     {
@@ -259,7 +270,7 @@ module.exports = (program, attributeName='forceSuperCall') =>
     return (context) => 
     {
         let transfomer = transformers.get(id);
-        if (!transfomer) transformers.set(id, transfomer = new ForceSuperTransformer(program, attributeName));
+        if (!transfomer) transformers.set(id, transfomer = new ForceSuperTransformer(program, attributeName, debug));
 
         return (node) => transfomer.visitSourceFile(context, node);
     };
