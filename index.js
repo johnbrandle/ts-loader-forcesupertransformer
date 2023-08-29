@@ -100,6 +100,12 @@ class ForceSuperTransformer
     {
         if (!node.heritageClauses) return false;
 
+        if (this.#hasJsdocTag(node, 'forceSuperTransformer_ignoreParent'))
+        {
+            if (this._debug) console.log(`skipping parent lookup for ${node.name.escapedText}`);
+            return false;
+        } 
+
         for (let clause of node.heritageClauses) 
         {
             if (clause.token == ts.SyntaxKind.ExtendsKeyword) return true;
@@ -259,7 +265,7 @@ class ForceSuperTransformer
 let transformers = new Map();
 let ID = 0;
 
-module.exports = (program, attributeName='forceSuperCall', debug=false) => 
+module.exports = (program, attributeName='forceSuperTransformer_forceSuperCall', debug=false) => 
 {
     if (!program) //renew all transfomers
     {
