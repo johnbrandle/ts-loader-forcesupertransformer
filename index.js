@@ -196,11 +196,18 @@ class ForceSuperTransformer
         for (let member of classNode.members) 
         {
             if (!ts.isMethodDeclaration(member)) continue;
-            if (!this.#requiresSuperCall(classNode, member.name.escapedText)) continue;
-            if (this.#hasSuperCall(member)) continue;
-                
-            this._failed = true;
-            throw new Error(`Method ${member.name.escapedText} in class ${classNode.name.escapedText} requires a super call but doesn't contain one.`);
+            
+            // handle overloads
+            let methodNodes = classNode.members.filter(m => ts.isMethodDeclaration(m) && m.name.escapedText === member.name.escapedText);
+            
+            let requiresSuperCall = this.#requiresSuperCall(classNode, member.name.escapedText);
+            let hasSuperCall = methodNodes.some(methodNode => this.#hasSuperCall(methodNode));
+            
+            if (requiresSuperCall && !hasSuperCall) 
+            {
+                this._failed = true;
+                throw new Error(`Method ${member.name.escapedText} in class ${classNode.name.escapedText} requires a super call but doesn't contain one.`);
+            }
         }
     }
 
@@ -221,8 +228,8 @@ class ForceSuperTransformer
       
     #methodHasTag(classNode, methodName, tagName) 
     {
-        let methodNode = classNode.members.find(member => ts.isMethodDeclaration(member) && member.name.escapedText === methodName);
-        return methodNode && this.#hasJsdocTag(methodNode, tagName);
+        let methodNodes = classNode.members.filter(member => ts.isMethodDeclaration(member) && member.name.escapedText === methodName);
+        return methodNodes.some(methodNode => this.#hasJsdocTag(methodNode, tagName));
     }
 
     #hasJsdocTag(node, tagName) 
