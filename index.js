@@ -55,6 +55,8 @@ class ForceSuperTransformer
     {
         if (!this._failed && this._pendingClassNodes.size) 
         {
+            console.warn('ForceSuperTransformer failed to process all class nodes:');
+
             console.warn('classNodes:');
             console.warn(this._classNodes.keys());
 
@@ -125,7 +127,7 @@ class ForceSuperTransformer
             if (clause.types.length != 1) return console.warn(`error parsing extends expression: ${clause.getText()}`);
             
             let symbol = this._typeChecker.getSymbolAtLocation(clause.types[0].expression);
-            if (!symbol) return console.warn(`error retrieving symbol for extends expression: ${clause.getText()}`);
+            if (!symbol) return clause.types[0].expression.getText();
             
             let type = this._typeChecker.getDeclaredTypeOfSymbol(symbol);
             if (!type) return console.warn(`no type associated with symbol for extends expression: ${clause.getText()}`);
