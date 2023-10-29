@@ -118,12 +118,21 @@ class ForceSuperTransformer
 
     #getParentClassFullyQualifiedName(node) 
     {
+        const getNameFromModuleSpecifier = (symbol, declaration, moduleSpecifier) =>
+        {
+            const basepath = path.dirname(declaration.getSourceFile().fileName);
+            const relativeFilePath = moduleSpecifier.text.replace('.ts', '') + '.ts';
+            const extendsFilePath = path.join(basepath, relativeFilePath);
+            const parentName = this._typeChecker.getFullyQualifiedName(symbol);
+            return `${extendsFilePath}:${parentName}`;
+        }
+       
         if (!node.heritageClauses) return;
 
         for (let clause of node.heritageClauses) 
         {
             if (clause.token != ts.SyntaxKind.ExtendsKeyword) continue;
-         
+
             if (clause.types.length != 1) return console.warn(`error parsing extends expression: ${clause.getText()}`);
             
             let symbol = this._typeChecker.getSymbolAtLocation(clause.types[0].expression);
@@ -133,18 +142,44 @@ class ForceSuperTransformer
             if (!type) return console.warn(`no type associated with symbol for extends expression: ${clause.getText()}`);
             
             let fullyQualifiedName;
-            if (symbol.declarations[0].parent?.moduleSpecifier)
+            const declaration = symbol.declarations[0];
+            if (declaration.parent?.moduleSpecifier)
             {
-                let basepath = path.dirname(symbol.declarations[0].getSourceFile().fileName);
-                let relativeFilePathOfExtends = symbol.declarations[0].parent.moduleSpecifier.text.replace('.ts', '') + '.ts'; 
-    
-                let extendsFilePath = path.join(basepath, relativeFilePathOfExtends);
-                let parentName = this._typeChecker.getFullyQualifiedName(symbol);
-                fullyQualifiedName = extendsFilePath + ':' + parentName;
+                fullyQualifiedName = getNameFromModuleSpecifier(symbol, declaration, declaration.parent.moduleSpecifier);
             }
             else //super class is likely defined in the same ts file
             {
-                fullyQualifiedName = this._typeChecker.getFullyQualifiedName(symbol).replaceAll('"', '').replace('.', '.ts:'); //before format: "/path/Foo".Foo, after format: /path/Foo.ts:Foo
+                const sourceFile = declaration.getSourceFile();
+                for (const statement of sourceFile.statements) 
+                {
+                    if (!ts.isImportDeclaration(statement)) continue;
+                    
+                    const importDeclaration = statement;
+                    const importClause = importDeclaration.importClause;
+    
+                    if (!importClause || !importClause.namedBindings || !ts.isNamedImports(importClause.namedBindings)) continue;
+    
+                    const namedImports = importClause.namedBindings;
+    
+                    let found = false;
+                    for (const element of namedImports.elements) 
+                    {
+                        if (element.name.text !== symbol.escapedName) continue;
+                        
+                        found = element;
+                        break;
+                    }
+    
+                    if (found === false) continue;
+                    
+                    fullyQualifiedName = getNameFromModuleSpecifier(symbol, declaration, importDeclaration.moduleSpecifier);
+                    break;
+                }
+      
+                if (!fullyQualifiedName) //could not find import. probably because the interface is declared in the same source file 
+                {
+                    fullyQualifiedName = declaration.getSourceFile().fileName + ':' + symbol.escapedName;
+                }
             }
 
             return fullyQualifiedName;
